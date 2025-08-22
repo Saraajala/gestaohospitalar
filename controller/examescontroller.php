@@ -1,5 +1,5 @@
 <?php
-require_once 'C:\Turma2\xampp\htdocs\gestaohospitalar\model\examesmodel.php';
+require_once __DIR__ . '/../model/examesmodel.php';
 
 class ExameController {
     private $exameModel;
@@ -8,35 +8,33 @@ class ExameController {
         $this->exameModel = new Exame($pdo);
     }
 
-    public function index() {
-        $exames = $this->exameModel->listar();
-        include 'C:\Turma2\xampp\htdocs\gestaohospitalar\view\exame_list.php';
+    // Retorna todos os exames
+    public function listar() {
+        return $this->exameModel->listar();
     }
 
+    // Formulário de novo exame
     public function criar() {
-        include 'C:\Turma2\xampp\htdocs\gestaohospitalar\view\exame_form.php';
+        include __DIR__ . '/../view/exame_form.php';
     }
 
-    public function salvar() {
-        $this->exameModel->salvar($_POST);
-        header("Location: index.php");
-        exit;
+    // Salvar novo exame
+    public function salvar($dados) {
+        $this->exameModel->salvar($dados);
     }
 
+    // Detalhes do exame
     public function detalhar($id) {
-        $exame = $this->exameModel->detalhar($id);
-        include 'C:\Turma2\xampp\htdocs\gestaohospitalar\view\exame_detalhe.php';
+        return $this->exameModel->detalhar($id);
     }
 
+    // Atualizar etapa do exame (coleta, análise, laudo)
     public function atualizarEtapa($id, $etapa) {
         $this->exameModel->atualizarEtapa($id, $etapa);
-        header("Location: index.php");
-        exit;
     }
 
-    public function salvarResultado($id) {
-        $this->exameModel->salvarResultado($id, $_POST['resultado'], isset($_POST['critico']));
-        header("Location: index.php");
-        exit;
+    // Salvar resultado do exame
+    public function salvarResultado($id, $dados) {
+        $this->exameModel->salvarResultado($id, $dados);
     }
 }

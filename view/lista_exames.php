@@ -1,3 +1,37 @@
+<?php
+require_once 'C:\Turma2\xampp\htdocs\gestaohospitalar\controller\examescontroller.php';
+
+$pdo = new PDO("mysql:host=localhost;dbname=gestaohospitalar", "root", "");
+$controller = new ExameController($pdo);
+
+// SALVAR NOVO EXAME
+if(isset($_POST['salvar'])){
+    $controller->salvar($_POST);
+    header("Location: lista_exames.php");
+    exit();
+}
+
+// ATUALIZAR ETAPA
+if(isset($_POST['etapa']) && isset($_POST['id'])){
+    $controller->atualizarEtapa($_POST['id'], $_POST['etapa']);
+    header("Location: lista_exames.php");
+    exit();
+}
+
+// LISTAR EXAMES
+$exames = $controller->listar();
+
+
+
+?>
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Exames</title>
+</head>
+<body>
 <h2>📋 Lista de Exames</h2>
 <a href="exame_form.php">➕ Novo Exame</a>
 
@@ -29,3 +63,5 @@
     <tr><td colspan="7">Nenhum exame cadastrado</td></tr>
 <?php endif; ?>
 </table>
+</body>
+</html>
