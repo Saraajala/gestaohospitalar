@@ -33,7 +33,7 @@
                 $_POST["email"],
                 $_POST["telefone"],
                 $_POST["sexo"],
-                $_POST["areaDeAtuacao"], // Médico envia área de atuação
+                $_POST["areaDeAtuacao"], 
                 $_POST["senha"],
                 $tipo
             );
@@ -43,14 +43,14 @@
                 $_POST["email"],
                 $_POST["telefone"],
                 $_POST["sexo"],
-                null, // Paciente não tem área de atuação
+                null, 
                 $_POST["senha"],
                 $tipo
             );
         }
 
         // Redireciona após cadastro
-        header("Location: ../../public/index.php");
+        header("Location: ../public/index.php");
         exit;
     }
     ?>
