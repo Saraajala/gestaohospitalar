@@ -8,26 +8,44 @@ class CadastroModel
         $this->pdo = $pdo;
     }
 
-    // Cadastro de médico
-    public function criarMedico($nome, $email, $telefone, $sexo, $areaDeAtuacao, $senha)
+    // Função para verificar se o e-mail já existe
+    private function emailExiste($email)
     {
-        $sql = "INSERT INTO gestaohospitalar (nome, email, telefone, sexo, area_de_atuacao, senha, tipo) VALUES (?, ?, ?, ?, ?, ?, 'médico')";
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE email = ?");
+        $stmt->execute([$email]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    // Cadastro de médico
+    public function criarMedico($nome, $email, $telefone, $sexo, $area_de_atuacao, $senha)
+    {
+        if ($this->emailExiste($email)) {
+            throw new Exception("Este e-mail já está cadastrado.");
+        }
+
+        $sql = "INSERT INTO usuarios (nome, email, telefone, sexo, area_de_atuacao, senha, tipo) 
+                VALUES (?, ?, ?, ?, ?, ?, 'médico')";
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$nome, $email, $telefone, $sexo, $areaDeAtuacao, $senha]);
+        return $stmt->execute([$nome, $email, $telefone, $sexo, $area_de_atuacao, $senha]);
     }
 
     // Cadastro de paciente
     public function criarPaciente($nome, $email, $telefone, $sexo, $senha)
     {
-        $sql = "INSERT INTO gestaohospitalar (nome, email, telefone, sexo, senha, tipo) VALUES (?, ?, ?, ?, ?, ?)";
+        if ($this->emailExiste($email)) {
+            throw new Exception("Este e-mail já está cadastrado.");
+        }
+
+        $sql = "INSERT INTO usuarios (nome, email, telefone, sexo, senha, tipo) 
+                VALUES (?, ?, ?, ?, ?, 'paciente')";
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$nome, $email, $telefone, $sexo, $senha, 'paciente']);
+        return $stmt->execute([$nome, $email, $telefone, $sexo, $senha]);
     }
 
     // Listar todos os cadastros
     public function listarCadastros()
     {
-        $sql = "SELECT * FROM gestaohospitalar";
+        $sql = "SELECT * FROM usuarios";
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

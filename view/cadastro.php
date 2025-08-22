@@ -50,7 +50,7 @@
         }
 
         // Redireciona após cadastro
-        header("Location: listar.php");
+        header("Location: ../../public/index.php");
         exit;
     }
     ?>
