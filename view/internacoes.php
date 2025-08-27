@@ -1,13 +1,21 @@
 <?php
-// view/internacoes.php
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../model/internacoesmodel.php';
 
 $model = new InternacoesModel($pdo);
 
-$pacientes  = $model->listarPacientes();
-$leitosLivres = $model->listarLeitosLivres();
-$internacoes = $model->listarInternacoesAtivas();
+// --- Liberar leitos que estão em limpeza há mais de 10 segundos ---
+$pdo->prepare("
+    UPDATE leitos 
+    SET status='livre', data_limpeza=NULL 
+    WHERE status='limpeza' AND data_limpeza <= NOW() - INTERVAL 10 SECOND
+")->execute();
+
+// Buscar dados
+$pacientes     = $model->listarPacientes();
+$leitosLivres  = $model->listarLeitosLivres();
+$internacoes   = $model->listarInternacoesAtivas();
+$leitos        = $model->listarLeitos(); // todos os leitos para exibir limpeza
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -29,8 +37,9 @@ textarea{resize:vertical;min-height:60px}
 .badge.ocupado{background:#ffdddd}
 .badge.livre{background:#ddffdd}
 .badge.limpeza{background:#fff3cd}
+small.mono{font-family:monospace;color:#666;}
+small.warning{color:#856404;}
 .row-actions{display:flex;gap:8px;align-items:center}
-small.mono{font-family:monospace;color:#666}
 </style>
 </head>
 <body>
@@ -53,12 +62,37 @@ small.mono{font-family:monospace;color:#666}
     <select name="leito_id" required>
       <option value="">Selecione um leito</option>
       <?php foreach($leitosLivres as $l): ?>
-        <option value="<?= $l['id'] ?>">Leito <?= htmlspecialchars($l['numero']) ?></option>
+        <option value="<?= $l['id'] ?>">Leito <?= htmlspecialchars($l['numero_leito']) ?></option>
       <?php endforeach; ?>
     </select>
 
     <button type="submit">Internar</button>
   </form>
+</section>
+
+<section class="card">
+  <h2>Status de Leitos</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Leito</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach($leitos as $l): ?>
+      <tr>
+        <td>Leito <?= htmlspecialchars($l['numero_leito']) ?></td>
+        <td>
+          <span class="badge <?= $l['status'] ?>"><?= $l['status'] ?></span>
+          <?php if($l['status'] === 'limpeza'): ?>
+            <br><small class="warning">⚠ Leito em limpeza, disponível em 10 segundos</small>
+          <?php endif; ?>
+        </td>
+      </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
 </section>
 
 <section>
@@ -77,28 +111,35 @@ small.mono{font-family:monospace;color:#666}
       </tr>
     </thead>
     <tbody>
-    <?php foreach($internacoes as $i): ?>
+      <?php foreach($internacoes as $i): ?>
       <tr>
         <td><?= htmlspecialchars($i['paciente']) ?></td>
         <td>Leito <?= htmlspecialchars($i['leito']) ?></td>
-        <td><span class="badge <?= $i['status_leito'] ?>"><?= $i['status_leito'] ?></span></td>
-        <td><small class="mono"><?= date('d/m/Y H:i', strtotime($i['data_internacao'])) ?></small></td>
-        <td class="row-actions">
+        <td>
+          <span class="badge <?= $i['status_leito'] ?>"><?= $i['status_leito'] ?></span>
+          <?php if($i['status_leito'] === 'limpeza'): ?>
+            <br><small class="warning">⚠ Leito em limpeza, disponível em 10 segundos</small>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?= !empty($i['data_entrada']) ? date('d/m/Y H:i', strtotime($i['data_entrada'])) : '-' ?>
+        </td>
+        <td>
           <!-- Troca de leito -->
-          <form method="POST" action="../controller/internacoescontroller.php" style="display:inline;min-width:260px;">
+          <form method="POST" action="../controller/internacoescontroller.php" style="display:inline-block; min-width:200px;">
             <input type="hidden" name="action" value="trocar_leito">
             <input type="hidden" name="internacao_id" value="<?= $i['id'] ?>">
             <select name="novo_leito_id" required>
               <option value="">Novo leito (livre)</option>
               <?php foreach($leitosLivres as $ll): ?>
-                <option value="<?= $ll['id'] ?>">Leito <?= htmlspecialchars($ll['numero']) ?></option>
+                <option value="<?= $ll['id'] ?>">Leito <?= htmlspecialchars($ll['numero_leito']) ?></option>
               <?php endforeach; ?>
             </select>
             <button type="submit">Trocar</button>
           </form>
 
           <!-- Alta -->
-          <form method="POST" action="../controller/internacoescontroller.php" style="display:inline;min-width:260px;">
+          <form method="POST" action="../controller/internacoescontroller.php" style="display:inline-block; min-width:200px;">
             <input type="hidden" name="action" value="alta">
             <input type="hidden" name="internacao_id" value="<?= $i['id'] ?>">
             <textarea name="orientacoes" placeholder="Orientações de alta (opcional)"></textarea>
@@ -106,10 +147,11 @@ small.mono{font-family:monospace;color:#666}
           </form>
         </td>
       </tr>
+
       <tr>
         <td colspan="5">
-          <!-- REGISTRO DIÁRIO -->
           <div class="flex">
+            <!-- Evoluções -->
             <div class="card" style="flex:1">
               <h3>Evoluções</h3>
               <form method="POST" action="../controller/internacoescontroller.php">
@@ -125,6 +167,7 @@ small.mono{font-family:monospace;color:#666}
               </ul>
             </div>
 
+            <!-- Exames -->
             <div class="card" style="flex:1">
               <h3>Exames</h3>
               <form method="POST" action="../controller/internacoescontroller.php">
@@ -137,14 +180,14 @@ small.mono{font-family:monospace;color:#666}
               <ul>
                 <?php foreach($model->listarExames($i['id']) as $ex): ?>
                   <li>
-                    <small class="mono"><?= date('d/m/Y H:i', strtotime($ex['data_registro'])) ?></small>
-                    — <b><?= htmlspecialchars($ex['nome_exame']) ?></b>
-                    <?php if(!empty($ex['resultado'])): ?>: <?= nl2br(htmlspecialchars($ex['resultado'])) ?><?php endif; ?>
+                    <small class="mono"><?= date('d/m/Y H:i', strtotime($ex['data_registro'])) ?></small> — <b><?= htmlspecialchars($ex['nome_exame']) ?></b>
+                    <?= !empty($ex['resultado']) ? ': ' . nl2br(htmlspecialchars($ex['resultado'])) : '' ?>
                   </li>
                 <?php endforeach; ?>
               </ul>
             </div>
 
+            <!-- Medicamentos -->
             <div class="card" style="flex:1">
               <h3>Medicamentos</h3>
               <form method="POST" action="../controller/internacoescontroller.php">
@@ -158,15 +201,15 @@ small.mono{font-family:monospace;color:#666}
               <ul>
                 <?php foreach($model->listarMedicamentos($i['id']) as $md): ?>
                   <li>
-                    <small class="mono"><?= date('d/m/Y H:i', strtotime($md['data_registro'])) ?></small>
-                    — <b><?= htmlspecialchars($md['nome']) ?></b>
-                    <?php if($md['dosagem']): ?> (<?= htmlspecialchars($md['dosagem']) ?>)<?php endif; ?>
-                    <?php if($md['horario_administracao']): ?> — <?= htmlspecialchars($md['horario_administracao']) ?><?php endif; ?>
+                    <small class="mono"><?= date('d/m/Y H:i', strtotime($md['data_registro'])) ?></small> — <b><?= htmlspecialchars($md['nome']) ?></b>
+                    <?= $md['dosagem'] ? ' (' . htmlspecialchars($md['dosagem']) . ')' : '' ?>
+                    <?= $md['horario_administracao'] ? ' — ' . htmlspecialchars($md['horario_administracao']) : '' ?>
                   </li>
                 <?php endforeach; ?>
               </ul>
             </div>
 
+            <!-- Procedimentos -->
             <div class="card" style="flex:1">
               <h3>Procedimentos</h3>
               <form method="POST" action="../controller/internacoescontroller.php">
@@ -184,7 +227,8 @@ small.mono{font-family:monospace;color:#666}
           </div>
         </td>
       </tr>
-    <?php endforeach; ?>
+
+      <?php endforeach; ?>
     </tbody>
   </table>
   <?php endif; ?>
