@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Login bem-sucedido
         $_SESSION['usuario_id'] = $usuario['id'];
         $_SESSION['usuario_tipo'] = $usuario['tipo'];
-        header("Location: ../view/perfil.php");
+        header("Location: ../public/index.php");
         exit;
     } else {
         $msg = "E-mail ou senha inválidos.";
@@ -47,6 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 
     <br>
-    <a href="cadastrar.php">Cadastrar</a>
+    <a href="cadastro.php">Cadastrar</a>
 </body>
 </html>

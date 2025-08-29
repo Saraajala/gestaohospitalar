@@ -1,56 +1,76 @@
 <?php
-require_once 'C:\Turma2\xampp\htdocs\gestaohospitalar\config.php';
-
-class Exame {
+class ExamesModel {
     private $pdo;
 
-    public function __construct($pdo)
-    {
+    public function __construct($pdo) {
         $this->pdo = $pdo;
     }
 
-    // Listar todos os exames
-    public function listar() {
-        $stmt = $this->pdo->query("SELECT * FROM exames ORDER BY id DESC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    // Salvar novo exame
-    public function salvar($dados) {
+    // Criar exame (pedido pelo médico)
+    public function criar($dados) {
         $stmt = $this->pdo->prepare("
-            INSERT INTO exames (paciente, solicitante, exame, data_exame, etapa)
-            VALUES (?, ?, ?, ?, 'coleta')
+            INSERT INTO exames_paciente 
+                (paciente_id, internacao_id, exame, solicitante, data_exame, etapa) 
+            VALUES (?, ?, ?, ?, ?, 'pedido')
         ");
         return $stmt->execute([
-            $dados['paciente'],
-            $dados['solicitante'],
+            $dados['paciente_id'],
+            $dados['internacao_id'] ?? null,
             $dados['exame'],
+            $dados['solicitante'],
             $dados['data_exame']
         ]);
     }
 
-    // Atualizar etapa do exame
-    public function atualizarEtapa($id, $etapa) {
-        $stmt = $this->pdo->prepare("UPDATE exames SET etapa=? WHERE id=?");
-        return $stmt->execute([$etapa, $id]);
+    // Listar exames de um paciente
+    public function listarPorPaciente($paciente_id) {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM exames_paciente
+            WHERE paciente_id = ?
+            ORDER BY data_exame DESC
+        ");
+        $stmt->execute([$paciente_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+// Listar exames solicitados por um médico
+public function listarPorMedico($medico_id) {
+    $stmt = $this->pdo->prepare("
+        SELECT e.*, u.nome AS paciente_nome
+        FROM exames_paciente e
+        JOIN pacientes p ON p.id = e.paciente_id
+        JOIN usuarios u ON u.id = p.usuario_id
+        WHERE e.solicitante = ?
+        ORDER BY e.data_exame DESC
+    ");
+    $stmt->execute([$medico_id]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
 
     // Detalhar exame
     public function detalhar($id) {
-        $stmt = $this->pdo->prepare("SELECT * FROM exames WHERE id=?");
+        $stmt = $this->pdo->prepare("SELECT * FROM exames_paciente WHERE id=?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Salvar resultado e marcar se é crítico
-    public function salvarResultado($id, $dados) {
-        $critico = isset($dados['critico']) ? 1 : 0;
-        $resultado = $dados['resultado'] ?? '';
+    // Atualizar etapa do exame
+    public function atualizarEtapa($id, $etapa) {
         $stmt = $this->pdo->prepare("
-            UPDATE exames 
-            SET resultado=?, resultado_critico=?, etapa='laudo pronto' 
+            UPDATE exames_paciente SET etapa=? WHERE id=?
+        ");
+        return $stmt->execute([$etapa, $id]);
+    }
+
+    // Salvar resultado
+    public function salvarResultado($id, $resultado, $resultado_critico = 0) {
+        $stmt = $this->pdo->prepare("
+            UPDATE exames_paciente 
+            SET resultado=?, resultado_critico=?, etapa='laudo pronto'
             WHERE id=?
         ");
-        return $stmt->execute([$resultado, $critico, $id]);
+        return $stmt->execute([$resultado, $resultado_critico, $id]);
     }
 }

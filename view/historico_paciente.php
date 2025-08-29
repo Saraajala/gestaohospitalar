@@ -88,6 +88,6 @@
         <p>Não há consultas registradas para este paciente.</p>
     <?php endif; ?>
 
-    <br><a href="listar_agendamentos.php">Voltar</a>
+    <br><a href="../public/index.php">Voltar</a>
 </body>
 </html>

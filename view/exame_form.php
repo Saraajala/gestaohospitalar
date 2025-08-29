@@ -1,19 +1,27 @@
 <form method="POST" action="lista_exames.php">
-    <label>Nome do Paciente:</label>
-    <input type="text" name="paciente" required><br><br>
-
-    <label>Exame:</label>
-    <select name="exame" required>
+    <label>Paciente:</label>
+    <select name="paciente_id" required>
         <option value="">-- Selecione --</option>
-        <option value="Hemograma">Hemograma</option>
-        <option value="Raio-X">Raio-X</option>
-        <option value="Ultrassom">Ultrassom</option>
-        <option value="Ressonância Magnética">Ressonância Magnética</option>
-        <option value="Eletrocardiograma">Eletrocardiograma</option>
+        <?php foreach($pacientes as $p): ?>
+            <option value="<?= $p['id'] ?>"><?= $p['nome'] ?></option>
+        <?php endforeach; ?>
     </select><br><br>
 
-    <label>Quem solicitou:</label>
-    <input type="text" name="solicitante" required><br><br>
+    <label>Exame:</label>
+    <select name="exame_id" required>
+        <option value="">-- Selecione --</option>
+        <?php foreach($exames as $x): ?>
+            <option value="<?= $x['id'] ?>"><?= $x['nome'] ?></option>
+        <?php endforeach; ?>
+    </select><br><br>
+
+    <label>Médico solicitante:</label>
+    <select name="medico_id" required>
+        <option value="">-- Selecione --</option>
+        <?php foreach($medicos as $m): ?>
+            <option value="<?= $m['id'] ?>"><?= $m['nome'] ?></option>
+        <?php endforeach; ?>
+    </select><br><br>
 
     <label>Data do exame:</label>
     <input type="date" name="data_exame" required><br><br>

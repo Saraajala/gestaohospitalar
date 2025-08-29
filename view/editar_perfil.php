@@ -10,7 +10,6 @@ if (!isset($_SESSION['usuario_id'])) {
 
 $controller = new PerfilController($pdo);
 $usuario_id = $_SESSION['usuario_id'];
-$msg = '';
 
 try {
     $usuario = $controller->mostrarPerfil($usuario_id);
@@ -18,74 +17,71 @@ try {
     die("Erro: " . $e->getMessage());
 }
 
-// Atualização dos dados
+// Processa o formulário
+$msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = $_POST['nome'];
-    $telefone = $_POST['telefone'];
-    $sexo = $_POST['sexo'];
+    $nome = $_POST['nome'] ?? '';
+    $telefone = $_POST['telefone'] ?? '';
+    $sexo = $_POST['sexo'] ?? '';
+    $areaDeAtuacao = $_POST['areaDeAtuacao'] ?? '';
 
-    // Atualiza dados básicos
+    // Atualiza dados no banco
     $stmt = $pdo->prepare("UPDATE usuarios SET nome = ?, telefone = ?, sexo = ? WHERE id = ?");
     $stmt->execute([$nome, $telefone, $sexo, $usuario_id]);
 
-    // Atualiza dados específicos
-    if ($usuario['tipo'] === 'médico') {
-        $area = $_POST['area_de_atuacao'];
-        $crm = $_POST['crm'];
-        $stmt = $pdo->prepare("UPDATE medicos SET area_de_atuacao = ?, crm = ? WHERE usuario_id = ?");
-        $stmt->execute([$area, $crm, $usuario_id]);
+    if ($usuario['tipo'] === 'médico' && $areaDeAtuacao) {
+        $stmt2 = $pdo->prepare("UPDATE medicos SET area_de_atuacao = ? WHERE usuario_id = ?");
+        $stmt2->execute([$areaDeAtuacao, $usuario_id]);
     }
 
-    if ($usuario['tipo'] === 'paciente') {
-        $data_nasc = $_POST['data_nascimento'];
-        $plano = $_POST['plano_saude'];
-        $alergias = $_POST['alergias'];
-        $obs = $_POST['observacoes'];
-        $stmt = $pdo->prepare("UPDATE pacientes SET data_nascimento = ?, plano_saude = ?, alergias = ?, observacoes = ? WHERE usuario_id = ?");
-        $stmt->execute([$data_nasc, $plano, $alergias, $obs, $usuario_id]);
-    }
+    $msg = '<span style="color:green">Perfil atualizado com sucesso!</span>';
 
-    $msg = "Perfil atualizado com sucesso!";
-    // Atualiza o usuário após salvar
+    // Recarrega os dados
     $usuario = $controller->mostrarPerfil($usuario_id);
 }
 ?>
 
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Perfil</title>
+</head>
+<body>
 <h1>Editar Perfil</h1>
-<?php if($msg) echo "<p style='color:green;'>$msg</p>"; ?>
+
+<?= $msg ?>
 
 <form method="POST">
     <label>Nome:</label><br>
-    <input type="text" name="nome" value="<?= htmlspecialchars($usuario['nome']) ?>" required><br>
+    <input type="text" name="nome" value="<?= htmlspecialchars($usuario['nome'] ?? '') ?>" required><br><br>
 
     <label>Telefone:</label><br>
-    <input type="text" name="telefone" value="<?= htmlspecialchars($usuario['telefone']) ?>" required><br>
+    <input type="text" name="telefone" value="<?= htmlspecialchars($usuario['telefone'] ?? '') ?>" required><br><br>
 
     <label>Sexo:</label><br>
-    <input type="radio" name="sexo" value="M" <?= $usuario['sexo']=='M' ? 'checked' : '' ?>> Masculino
-    <input type="radio" name="sexo" value="F" <?= $usuario['sexo']=='F' ? 'checked' : '' ?>> Feminino<br>
+    <input type="radio" name="sexo" value="M" <?= ($usuario['sexo'] ?? '') === 'M' ? 'checked' : '' ?>> Masculino
+    <input type="radio" name="sexo" value="F" <?= ($usuario['sexo'] ?? '') === 'F' ? 'checked' : '' ?>> Feminino
+    <br><br>
 
     <?php if ($usuario['tipo'] === 'médico'): ?>
         <label>Área de Atuação:</label><br>
-        <input type="text" name="area_de_atuacao" value="<?= htmlspecialchars($usuario['area_de_atuacao']) ?>" required><br>
-        <label>CRM:</label><br>
-        <input type="text" name="crm" value="<?= htmlspecialchars($usuario['crm']) ?>" required><br>
+        <select name="areaDeAtuacao" required>
+            <option value="">Selecione a área</option>
+            <?php
+            $areas = ["Cardiologia","Dermatologia","Endocrinologia","Ginecologia","Neurologia","Pediatria","Psiquiatria","Ortopedia","Oftalmologia","Gastroenterologia"];
+            foreach($areas as $area):
+                $selected = ($usuario['area_de_atuacao'] ?? '') === $area ? 'selected' : '';
+                echo "<option value=\"$area\" $selected>$area</option>";
+            endforeach;
+            ?>
+        </select><br><br>
     <?php endif; ?>
 
-    <?php if ($usuario['tipo'] === 'paciente'): ?>
-        <label>Data de Nascimento:</label><br>
-        <input type="date" name="data_nascimento" value="<?= htmlspecialchars($usuario['data_nascimento']) ?>"><br>
-        <label>Plano de Saúde:</label><br>
-        <input type="text" name="plano_saude" value="<?= htmlspecialchars($usuario['plano_saude']) ?>"><br>
-        <label>Alergias:</label><br>
-        <textarea name="alergias"><?= htmlspecialchars($usuario['alergias']) ?></textarea><br>
-        <label>Observações:</label><br>
-        <textarea name="observacoes"><?= htmlspecialchars($usuario['observacoes']) ?></textarea><br>
-    <?php endif; ?>
-
-    <br>
     <button type="submit">Salvar Alterações</button>
 </form>
 
 <br>
 <a href="perfil.php">Voltar ao Perfil</a>
+</body>
+</html>

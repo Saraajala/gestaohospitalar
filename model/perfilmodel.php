@@ -13,7 +13,7 @@ class PerfilModel {
     }
 
     public function getMedico($usuario_id) {
-        $stmt = $this->pdo->prepare("SELECT area_de_atuacao, crm FROM medicos WHERE usuario_id = ?");
+        $stmt = $this->pdo->prepare("SELECT area_de_atuacao FROM medicos WHERE usuario_id = ?");
         $stmt->execute([$usuario_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }

@@ -18,9 +18,7 @@ class PerfilController
             throw new Exception("Usuário não encontrado");
         }
 
-        // Inicializa campos extras
         $usuario['area_de_atuacao'] = '';
-        $usuario['crm'] = '';
         $usuario['data_nascimento'] = '';
         $usuario['plano_saude'] = '';
         $usuario['alergias'] = '';

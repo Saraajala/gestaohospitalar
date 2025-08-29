@@ -1,40 +1,34 @@
 <?php
-require_once __DIR__ . '/../model/examesmodel.php';
+require_once __DIR__ . '/../model/ExamesModel.php';
 
-class ExameController {
-    private $exameModel;
+class ExamesController {
+    private $model;
 
     public function __construct($pdo) {
-        $this->exameModel = new Exame($pdo);
+        $this->model = new ExamesModel($pdo);
     }
 
-    // Retorna todos os exames
-    public function listar() {
-        return $this->exameModel->listar();
+    public function criar($dados) {
+        return $this->model->criar($dados);
     }
 
-    // Formulário de novo exame
-    public function criar() {
-        include __DIR__ . '/../view/exame_form.php';
+    public function listar($paciente_id) {
+        return $this->model->listarPorPaciente($paciente_id);
     }
 
-    // Salvar novo exame
-    public function salvar($dados) {
-        $this->exameModel->salvar($dados);
-    }
+    public function listarPorMedico($medico_nome) {
+    return $this->model->listarPorMedico($medico_nome);
+}
 
-    // Detalhes do exame
     public function detalhar($id) {
-        return $this->exameModel->detalhar($id);
+        return $this->model->detalhar($id);
     }
 
-    // Atualizar etapa do exame (coleta, análise, laudo)
     public function atualizarEtapa($id, $etapa) {
-        $this->exameModel->atualizarEtapa($id, $etapa);
+        return $this->model->atualizarEtapa($id, $etapa);
     }
 
-    // Salvar resultado do exame
-    public function salvarResultado($id, $dados) {
-        $this->exameModel->salvarResultado($id, $dados);
+    public function salvarResultado($id, $resultado, $resultado_critico = 0) {
+        return $this->model->salvarResultado($id, $resultado, $resultado_critico);
     }
 }
