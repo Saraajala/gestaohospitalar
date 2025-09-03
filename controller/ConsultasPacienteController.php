@@ -22,4 +22,9 @@ class ConsultasPacienteController {
     public function detalhar($consulta_id) {
         return $this->model->detalhar($consulta_id);
     }
+
+    // Agendar nova consulta
+    public function agendar($paciente_id, $medico_id, $data_hora) {
+        return $this->model->agendar($paciente_id, $medico_id, $data_hora);
+    }
 }

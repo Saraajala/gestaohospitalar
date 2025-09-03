@@ -6,7 +6,6 @@ class InternacoesModel {
         $this->pdo = $pdo;
     }
 
-    /** Pacientes **/
     public function listarPacientes() {
         $sql = "SELECT id, nome FROM usuarios WHERE tipo='paciente' ORDER BY nome";
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -49,7 +48,6 @@ class InternacoesModel {
         }
     }
 
-    /** Internações ativas **/
     public function listarInternacoesAtivas() {
         $sql = "SELECT i.id, i.paciente_id, u.nome AS paciente,
                        i.leito_id, l.numero_leito AS leito, l.status AS status_leito,
@@ -67,8 +65,6 @@ class InternacoesModel {
         $st->execute([$id]);
         return $st->fetch(PDO::FETCH_ASSOC);
     }
-
-    /** Troca de leito **/
     public function trocarLeito($internacao_id, $novo_leito_id) {
         $chk = $this->pdo->prepare("SELECT status FROM leitos WHERE id=?");
         $chk->execute([$novo_leito_id]);
@@ -98,45 +94,39 @@ class InternacoesModel {
         }
     }
 
-    /** Alta **/
     public function darAlta($internacao_id, $orientacoes = null) {
-    $this->pdo->beginTransaction();
-    try {
-        // 1️⃣ Atualiza a internação para encerrada
-        $stmt = $this->pdo->prepare("
-            UPDATE internacoes
-            SET data_alta = NOW(), orientacoes = ?, status = 'encerrada'
-            WHERE id = ?
-        ");
-        $stmt->execute([$orientacoes, $internacao_id]);
-
-        // 2️⃣ Pega o leito associado
-        $stmt = $this->pdo->prepare("SELECT leito_id FROM internacoes WHERE id=?");
-        $stmt->execute([$internacao_id]);
-        $leito_id = $stmt->fetchColumn();
-
-        // 3️⃣ Se existir leito, coloca em limpeza com data_limpeza = NOW()
-        if ($leito_id) {
+        $this->pdo->beginTransaction();
+        try {
             $stmt = $this->pdo->prepare("
-                UPDATE leitos 
-                SET status = 'limpeza', data_limpeza = NOW() 
+                UPDATE internacoes
+                SET data_alta = NOW(), orientacoes = ?, status = 'encerrada'
                 WHERE id = ?
             ");
-            $stmt->execute([$leito_id]);
+            $stmt->execute([$orientacoes, $internacao_id]);
+
+            $stmt = $this->pdo->prepare("SELECT leito_id FROM internacoes WHERE id=?");
+            $stmt->execute([$internacao_id]);
+            $leito_id = $stmt->fetchColumn();
+
+            if ($leito_id) {
+                $stmt = $this->pdo->prepare("
+                    UPDATE leitos 
+                    SET status = 'limpeza', data_limpeza = NOW() 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$leito_id]);
+            }
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
         }
-
-        $this->pdo->commit();
-    } catch (\Throwable $e) {
-        $this->pdo->rollBack();
-        throw $e;
     }
-}
 
-
-    /** Evoluções **/
     public function adicionarEvolucao($internacao_id, $descricao) {
         $st = $this->pdo->prepare("
-            INSERT INTO evolucoes (internacao_id, descricao, data_registro)
+            INSERT INTO evolucoes_paciente (internacao_id, descricao, data_registro)
             VALUES (?, ?, NOW())
         ");
         $st->execute([$internacao_id, $descricao]);
@@ -144,7 +134,7 @@ class InternacoesModel {
 
     public function listarEvolucoes($internacao_id) {
         $st = $this->pdo->prepare("
-            SELECT * FROM evolucoes
+            SELECT * FROM evolucoes_paciente
             WHERE internacao_id=?
             ORDER BY data_registro DESC
         ");
@@ -152,19 +142,30 @@ class InternacoesModel {
         return $st->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Exames **/
-    public function adicionarExame($internacao_id, $nome_exame, $resultado=null) {
-        $st = $this->pdo->prepare("
-            INSERT INTO exames (internacao_id, exame, resultado, data_registro)
-            VALUES (?, ?, ?, NOW())
-        ");
-        $st->execute([$internacao_id, $nome_exame, $resultado]);
+   public function adicionarExame($internacao_id, $nome_exame, $solicitante = null, $resultado = null) {
+    // 1. Pegar paciente_id a partir da internação
+    $st = $this->pdo->prepare("SELECT paciente_id FROM internacoes WHERE id = ?");
+    $st->execute([$internacao_id]);
+    $paciente_id = $st->fetchColumn();
+
+    if (!$paciente_id) {
+        throw new Exception("internacao_id '$internacao_id' não possui paciente válido.");
     }
+
+    // 2. Inserir exame
+    $st = $this->pdo->prepare("
+        INSERT INTO exames_paciente
+            (paciente_id, internacao_id, exame, solicitante, resultado, data_registro)
+        VALUES (?, ?, ?, ?, ?, NOW())
+    ");
+    $st->execute([$paciente_id, $internacao_id, $nome_exame, $solicitante, $resultado]);
+}
+
 
     public function listarExames($internacao_id) {
         $st = $this->pdo->prepare("
             SELECT id, internacao_id, exame AS nome_exame, resultado, data_registro
-            FROM exames
+            FROM exames_paciente
             WHERE internacao_id=?
             ORDER BY data_registro DESC
         ");

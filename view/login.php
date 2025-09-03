@@ -48,5 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <br>
     <a href="cadastro.php">Cadastrar</a>
+    <a href="redefinir_senha.php">Esqueci a Senha</a>
 </body>
 </html>

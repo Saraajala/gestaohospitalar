@@ -1,0 +1,4 @@
+2025-09-03T18:45:03+02:00 - ACTION: evolucao POST: {"action":"evolucao","internacao_id":"56","descricao":"ASD"}
+2025-09-03T18:45:03+02:00 - CHECK internacao_id=56 exists=0
+2025-09-03T18:45:59+02:00 - ACTION: evolucao POST: {"action":"evolucao","internacao_id":"56","descricao":"ASD"}
+2025-09-03T18:45:59+02:00 - CHECK internacao_id=56 exists=0
